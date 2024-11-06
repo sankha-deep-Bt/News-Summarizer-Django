@@ -1,28 +1,35 @@
 {% extends "layout.html" %} {% block content %}
 
-<div class="container mx-auto mt-10">
+<div
+  class="container mx-auto mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+>
   {% for hl, desc, img, url in mylist %}
-  <div class="bg-white shadow-md rounded-lg mb-4 overflow-hidden">
-    {% if img %}
-    <img src="{{ img }}" alt="image" class="w-full h-100 object-cover" />
-
-    {% endif %}
-    <div class="p-6">
-      <h4 class="text-xl font-bold text-blue-500 mb-2">Headline:</h4>
-      <h5 class="text-gray-800 mb-4">{{ hl|linebreaks }}</h5>
-      <h4 class="text-xl font-bold text-green-500 mb-2">Description:</h4>
-      <h5 class="text-gray-800 mb-4">{{ desc|linebreaks }}</h5>
-      <form action="{% url 'article' %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="url" value="{{ url }}" />
-        <button
-          type="submit"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Read More
-        </button>
-      </form>
+  <div
+    class="bg-white shadow-md rounded-lg overflow-hidden p-4 flex flex-col justify-between h-full transform transition hover:scale-105"
+  >
+    <div>
+      {% if img %}
+      <img src="{{ img }}" alt="image" class="object-cover h-48 w-full mb-4" />
+      {% endif %}
+      <div>
+        <h4 class="text-xl font-bold text-blue-500 mb-2">Headline:</h4>
+        <h5 class="text-gray-800 mb-4">{{ hl|linebreaks }}</h5>
+        {% if desc %}
+        <h4 class="text-xl font-bold text-green-500 mb-2">Description:</h4>
+        <h5 class="text-gray-800 mb-4">{{ desc|linebreaks }}</h5>
+        {% endif %}
+      </div>
     </div>
+    <form action="{% url 'article' %}" method="post" class="w-full mt-4">
+      {% csrf_token %}
+      <input type="hidden" name="url" value="{{ url }}" />
+      <button
+        type="submit"
+        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-center"
+      >
+        Read More
+      </button>
+    </form>
   </div>
   {% endfor %}
 </div>

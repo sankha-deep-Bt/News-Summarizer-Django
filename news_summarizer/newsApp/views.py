@@ -1,60 +1,30 @@
+from django.shortcuts import render
 import os
+
 from dotenv import load_dotenv
 from newsapi import NewsApiClient
-from django.shortcuts import render
 from textblob import TextBlob
-# from textblob import download_corpora
-from newspaper import Article
+from newspaper import Article, ArticleException
 from urllib.parse import urlparse, unquote
 import validators
 import requests
 import nltk
 
+# from textblob import download_corpora
+
+
 load_dotenv() #using dotenv
+
+
 # # Create your views here.
-# def index(request):
-#     newsApi = NewsApiClient(api_key=os.getenv('api_key')) 
-#     articles = []
-#     # download_corpora()
-#     # newsApi = NewsApiClient(api_key="Your_Api_key")
-
-#     for page in range(1, 6): 
-#         headLines = newsApi.get_top_headlines(page=page, page_size=20) 
-#         articles.extend(headLines.get('articles', []))
-
-#     # articles = headLines['articles']
-#     desc = []
-#     news = []
-#     img = []
-#     url = []
-
-#     for i in range(len(articles)):
-#         if articles[i]['description'] is not None:
-#             desc.append(articles[i]['description'])
-#             news.append(articles[i]['title'])
-#             print(articles[i]['title'])
-#             img.append(articles[i]['urlToImage'])
-#             url.append(articles[i]['url'])
-#     mylist = zip(news, desc, img,url)
-
-#     return render(request, 'main/index.html', context={"mylist": mylist})
-
-
-
-
 def index(request):
     newsApi = NewsApiClient(api_key=os.getenv('api_key'))
-    # headLines = newsApi.get_top_headlines()
-    # articles = headLines.get('articles', [])
-    s = '[Removed]'
 
     articles = []
 
-    for page in range(1, 6): 
-        headLines = newsApi.get_top_headlines(page=page, page_size=20) 
+    for page in range(1, 6):
+        headLines = newsApi.get_top_headlines(page=page, page_size=20)
         articles.extend(headLines.get('articles', []))
-
-    # print("Total articles fetched:", len(articles))  # Debugging line
 
     desc = []
     news = []
@@ -67,22 +37,16 @@ def index(request):
         image = article.get('urlToImage')
         link = article.get('url')
 
-        # Add debugging output to check each attribute
-        # print("Title:", title)
-        # print("Description:", description)
-        # print("Image:", image)
-        # print("URL:", link)
-
-        if all([description, title, link]) and description or title is not s:
+        # Check if all fields are present and valid
+        if all([description, title, link, image]) and '[Removed]' not in (title, description):
             desc.append(description)
             news.append(title)
             img.append(image)
             url.append(link)
 
-    # print("Total valid articles:", len(desc))  # Debugging line
-
     mylist = zip(news, desc, img, url)
     return render(request, 'main/index.html', context={"mylist": mylist})
+
 
 
 
@@ -95,62 +59,139 @@ def get_website_name(url):
         domain = domain[4:]
     return domain
 
+
+
+
+# def ArticleDetail(request):
+#     # Ensure necessary NLTK data is downloaded
+#     nltk.download('punkt_tab', quiet=True)
+    
+#     url = request.POST.get('url')
+    
+#     if not url:
+#         return render(request, 'main/article.html', {'error': 'URL parameter is missing'})
+
+#     url = unquote(url)
+
+
+#     if not validators.url(url):
+#         return render(request, 'main/article.html', {'error': 'Invalid URL'})
+    
+#     try:
+#         response = requests.get(url)
+#         response.raise_for_status()
+#     except requests.RequestException as e:
+#         return render(request, 'main/article.html', {'error': f'Failed to download the content of the URL: {e}'})
+    
+#     try:
+#         article = Article(url)
+#         article.download()
+#         article.parse()
+#         article.nlp()
+#     except ArticleException as e:
+#         return render(request, 'main/article.html', {'error': f'Failed to process the article: {e}'})
+    
+#     title = article.title
+#     authors = ', '.join(article.authors)
+#     if not authors:
+#         authors = get_website_name(url)
+#     publish_date = article.publish_date.strftime('%B %d, %Y') if article.publish_date else "N/A"
+    
+#     article_text = article.text
+#     sentences = article_text.split('.')
+#     max_summarized_sentences = 5
+#     summary = '.'.join(sentences[:max_summarized_sentences])
+    
+#     top_image = article.top_image
+    
+#     analysis = TextBlob(article.text)
+#     polarity = analysis.sentiment.polarity
+    
+#     if polarity > 0:
+#         sentiment = 'happy 😊'
+#     elif polarity < 0:
+#         sentiment = 'sad 😟'
+#     else:
+#         sentiment = 'neutral 😐'
+    
+#     context = {
+#         'title': title,
+#         'authors': authors,
+#         'publish_date': publish_date,
+#         'summary': summary,
+#         'top_image': top_image,
+#         'sentiment': sentiment,
+#         'url': url
+#     }
+#     return render(request, 'main/article.html', context)
+
+
+
 def ArticleDetail(request):
-        nltk.download('punkt_tab') 
-        url = request.POST.get('url')
-        # download_corpora() #run this once
-        # print(f"URL parameter: {url}") 
-        if not url:
-            return render(request, 'main/article.html', {'error': 'URL parameter is missing'})
+    nltk.download('punkt_tab', quiet=True)
+    
+    url = request.POST.get('url')
+    
+    if not url:
+        return render(request, 'main/article.html', {'error': 'URL parameter is missing', 'url': None})
 
-        url = unquote(url)
-        if not validators.url(url):
-            return render(request, 'main/article.html', {'error': 'Invalid URL'})
-
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-        except requests.RequestException:
-            return render(request, 'main/article.html', {'error': 'Failed to download the content of the URL'})
-
+    url = unquote(url)
+    if not validators.url(url):
+        return render(request, 'main/article.html', {'error': 'Invalid URL', 'url': url})
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0',  # Mimic a browser request to avoid getting blocked
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        return render(request, 'main/article.html', {'error': f'Failed to download the content of the URL: {e}', 'url': url})
+    
+    try:
         article = Article(url)
         article.download()
         article.parse()
         article.nlp()
+    except ArticleException as e:
+        return render(request, 'main/article.html', {'error': f'Failed to process the article: {e}', 'url': url})
+    
+    title = article.title
+    authors = ', '.join(article.authors)
+    if not authors:
+        authors = get_website_name(url)
+    publish_date = article.publish_date.strftime('%B %d, %Y') if article.publish_date else "N/A"
+    
+    article_text = article.text
+    sentences = article_text.split('.')
+    max_summarized_sentences = 5
+    summary = '.'.join(sentences[:max_summarized_sentences])
+    
+    top_image = article.top_image
+    
+    analysis = TextBlob(article.text)
+    polarity = analysis.sentiment.polarity
+    
+    if polarity > 0:
+        sentiment = 'happy 😊'
+    elif polarity < 0:
+        sentiment = 'sad 😟'
+    else:
+        sentiment = 'neutral 😐'
+    
+    context = {
+        'title': title,
+        'authors': authors,
+        'publish_date': publish_date,
+        'summary': summary,
+        'top_image': top_image,
+        'sentiment': sentiment,
+        'url': url
+    }
+    return render(request, 'main/article.html', context)
 
-        title = article.title
-        authors = ', '.join(article.authors)
-        if not authors:
-            authors = get_website_name(url)
-        publish_date = article.publish_date.strftime('%B %d, %Y') if article.publish_date else "N/A"
 
-        article_text = article.text
-        sentences = article_text.split('.')
-        max_summarized_sentences = 5
-        summary = '.'.join(sentences[:max_summarized_sentences])
-
-        top_image = article.top_image
-
-        analysis = TextBlob(article.text)
-        polarity = analysis.sentiment.polarity
-
-        if polarity > 0:
-            sentiment = 'happy 😊'
-        elif polarity < 0:
-            sentiment = 'sad 😟'
-        else:
-            sentiment = 'neutral 😐'
-
-        context = {
-            'title': title,
-            'authors': authors,
-            'publish_date': publish_date,
-            'summary': summary,
-            'top_image': top_image,
-            'sentiment': sentiment,
-            'url': url
-        }
-        return render(request, 'main/article.html', context)
 
 
 
@@ -172,5 +213,12 @@ def search_news(request):
             ]
         else:
             print(f"Error: {data.get('message')}")
-
+    
     return render(request, 'main/search_results.html', {'articles': articles})
+
+
+
+
+
+def about(request):
+    return render(request, 'main/about.html')
