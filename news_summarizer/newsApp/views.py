@@ -1,5 +1,7 @@
 from django.shortcuts import render
 import os
+import logging
+
 
 from dotenv import load_dotenv
 from newsapi import NewsApiClient
@@ -9,6 +11,8 @@ from urllib.parse import urlparse, unquote
 import validators
 import requests
 import nltk
+from nltk.tokenize import sent_tokenize
+
 
 # from textblob import download_corpora
 
@@ -60,75 +64,8 @@ def get_website_name(url):
     return domain
 
 
-
-
-# def ArticleDetail(request):
-#     # Ensure necessary NLTK data is downloaded
-#     nltk.download('punkt_tab', quiet=True)
-    
-#     url = request.POST.get('url')
-    
-#     if not url:
-#         return render(request, 'main/article.html', {'error': 'URL parameter is missing'})
-
-#     url = unquote(url)
-
-
-#     if not validators.url(url):
-#         return render(request, 'main/article.html', {'error': 'Invalid URL'})
-    
-#     try:
-#         response = requests.get(url)
-#         response.raise_for_status()
-#     except requests.RequestException as e:
-#         return render(request, 'main/article.html', {'error': f'Failed to download the content of the URL: {e}'})
-    
-#     try:
-#         article = Article(url)
-#         article.download()
-#         article.parse()
-#         article.nlp()
-#     except ArticleException as e:
-#         return render(request, 'main/article.html', {'error': f'Failed to process the article: {e}'})
-    
-#     title = article.title
-#     authors = ', '.join(article.authors)
-#     if not authors:
-#         authors = get_website_name(url)
-#     publish_date = article.publish_date.strftime('%B %d, %Y') if article.publish_date else "N/A"
-    
-#     article_text = article.text
-#     sentences = article_text.split('.')
-#     max_summarized_sentences = 5
-#     summary = '.'.join(sentences[:max_summarized_sentences])
-    
-#     top_image = article.top_image
-    
-#     analysis = TextBlob(article.text)
-#     polarity = analysis.sentiment.polarity
-    
-#     if polarity > 0:
-#         sentiment = 'happy 😊'
-#     elif polarity < 0:
-#         sentiment = 'sad 😟'
-#     else:
-#         sentiment = 'neutral 😐'
-    
-#     context = {
-#         'title': title,
-#         'authors': authors,
-#         'publish_date': publish_date,
-#         'summary': summary,
-#         'top_image': top_image,
-#         'sentiment': sentiment,
-#         'url': url
-#     }
-#     return render(request, 'main/article.html', context)
-
-
-
 def ArticleDetail(request):
-    nltk.download('punkt_tab', quiet=True)
+    nltk.download('punkt', quiet=True)
     
     url = request.POST.get('url')
     
@@ -161,12 +98,18 @@ def ArticleDetail(request):
     authors = ', '.join(article.authors)
     if not authors:
         authors = get_website_name(url)
-    publish_date = article.publish_date.strftime('%B %d, %Y') if article.publish_date else "N/A"
+    
+    # Debugging publish_date
+    publish_date = article.publish_date
+    if publish_date:
+        publish_date = publish_date.strftime('%B %d, %Y')
+    else:
+        publish_date = "N/A"
     
     article_text = article.text
-    sentences = article_text.split('.')
+    sentences = nltk.sent_tokenize(article_text)  # Using NLTK for sentence tokenization
     max_summarized_sentences = 5
-    summary = '.'.join(sentences[:max_summarized_sentences])
+    summary = ' '.join(sentences[:max_summarized_sentences])
     
     top_image = article.top_image
     
@@ -194,7 +137,6 @@ def ArticleDetail(request):
 
 
 
-
 def search_news(request):
     query = request.GET.get('query')
     articles = []
@@ -212,9 +154,14 @@ def search_news(request):
                 if article.get('title') and article.get('description') and article.get('url') and article.get('urlToImage')
             ]
         else:
-            print(f"Error: {data.get('message')}")
+            error_message = data.get('message', 'An error occurred while fetching the news.')
+            return render(request, 'main/search_results.html', {'error': error_message})
+    
+    else:
+        return render(request, 'main/search_results.html', {'error': 'No search query provided.'})
     
     return render(request, 'main/search_results.html', {'articles': articles})
+
 
 
 
