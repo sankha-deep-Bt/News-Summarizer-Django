@@ -1,6 +1,5 @@
 from django.shortcuts import render
 import os
-import logging
 
 
 from dotenv import load_dotenv
