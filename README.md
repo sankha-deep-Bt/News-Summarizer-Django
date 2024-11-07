@@ -71,7 +71,7 @@ cd news_summarizer
 
 ## THE ERRORS ARE THERE BECAUSE MIGRATIONS HAVE NOT BEEN DONE THEY CAN BE IGNORED
 
-## To get ruid of the error run the following commands one by one:
+## To get rid of the error run the following commands one by one:
 
 ```bash
   python manage.py makemigrations
