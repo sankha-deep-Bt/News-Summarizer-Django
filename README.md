@@ -1,6 +1,8 @@
-# New Summarizer Project
+# NewsBytes: A New Summarizer Web Application
 
-This project is a text summarization tool built with Django. Below are the steps to set up the project, install dependencies, and run the server.
+This project is a text summarization tool built with Django which explores the working of the python nltk library with real time data: News Articles which we get from newsApi.
+
+Below are the steps to set up the project, install dependencies, and run the server.
 
 ## Prerequisites
 
