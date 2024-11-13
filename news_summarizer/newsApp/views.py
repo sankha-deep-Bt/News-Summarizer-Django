@@ -19,36 +19,78 @@ from nltk.tokenize import sent_tokenize
 load_dotenv() #using dotenv
 
 
-# # Create your views here.
-def index(request):
-    newsApi = NewsApiClient(api_key=os.getenv('api_key'))
+# # # Create your views here.
+# def index(request):
+#     newsApi = NewsApiClient(api_key=os.getenv('api_key'))
 
+#     articles = []
+
+#     for page in range(1, 6):
+#         headLines = newsApi.get_top_headlines(page=page, page_size=20)
+#         articles.extend(headLines.get('articles', []))
+
+#     desc = []
+#     news = []
+#     img = []
+#     url = []
+
+#     for article in articles:
+#         title = article.get('title')
+#         description = article.get('description')
+#         image = article.get('urlToImage')
+#         link = article.get('url')
+
+#         # Check if all fields are present and valid
+#         if all([description, title, link, image]) and '[Removed]' not in (title, description):
+#             desc.append(description)
+#             news.append(title)
+#             img.append(image)
+#             url.append(link)
+
+#     mylist = zip(news, desc, img, url)
+#     return render(request, 'main/index.html', context={"mylist": mylist})
+
+
+
+
+
+
+
+def fetch_news_articles(api_key, num_pages=5, page_size=20):
+    newsApi = NewsApiClient(api_key=api_key)
     articles = []
 
-    for page in range(1, 6):
-        headLines = newsApi.get_top_headlines(page=page, page_size=20)
+    for page in range(1, num_pages + 1):
+        headLines = newsApi.get_top_headlines(page=page, page_size=page_size)
         articles.extend(headLines.get('articles', []))
 
-    desc = []
-    news = []
-    img = []
-    url = []
-
+    filtered_articles = []
     for article in articles:
         title = article.get('title')
         description = article.get('description')
         image = article.get('urlToImage')
         link = article.get('url')
 
-        # Check if all fields are present and valid
         if all([description, title, link, image]) and '[Removed]' not in (title, description):
-            desc.append(description)
-            news.append(title)
-            img.append(image)
-            url.append(link)
+            filtered_articles.append({
+                'title': title,
+                'description': description,
+                'image': image,
+                'url': link
+            })
 
-    mylist = zip(news, desc, img, url)
+    return filtered_articles
+
+
+
+
+def index(request):
+    api_key = os.getenv('api_key')
+    articles = fetch_news_articles(api_key)
+
+    mylist = [(article['title'], article['description'], article['image'], article['url']) for article in articles]
     return render(request, 'main/index.html', context={"mylist": mylist})
+
 
 
 
