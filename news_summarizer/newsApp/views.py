@@ -1,7 +1,6 @@
 from django.shortcuts import render
 import os
 
-
 from dotenv import load_dotenv
 from newsapi import NewsApiClient
 from textblob import TextBlob
@@ -9,11 +8,13 @@ from newspaper import Article, ArticleException
 from urllib.parse import urlparse, unquote
 import validators
 import requests
-import nltk
-from nltk.tokenize import sent_tokenize
-
 
 # from textblob import download_corpora
+
+# import nltk
+from nltk.text import Text
+from nltk.tokenize import sent_tokenize
+from nltk.corpus import stopwords
 
 
 load_dotenv() #using dotenv
@@ -49,6 +50,10 @@ def fetch_news_articles(api_key, num_pages=5, page_size=20):
 
 
 def index(request):
+    # nltk.download('punkt', quiet=True)
+    # nltk.download('stopwords', quiet=True)
+    # nltk.download('vader_lexicon', quiet=True)
+    
     api_key = os.getenv('api_key')
     articles = fetch_news_articles(api_key)
 
@@ -66,7 +71,6 @@ def get_website_name(url):
 
 
 def ArticleDetail(request):
-    nltk.download('punkt', quiet=True)
     
     url = request.POST.get('url')
     
@@ -100,17 +104,23 @@ def ArticleDetail(request):
     if not authors:
         authors = get_website_name(url)
     
-    # Debugging publish_date
     publish_date = article.publish_date
     if publish_date:
         publish_date = publish_date.strftime('%B %d, %Y')
     else:
         publish_date = "N/A"
     
-    article_text = article.text
-    sentences = nltk.sent_tokenize(article_text)  # Using NLTK for sentence tokenization
+    # article_text = article.text
+    # sentences = nltk.sent_tokenize(article_text)  # Using NLTK for sentence tokenization
+
+    sentences = sent_tokenize(article.text)
+    stop_words = set(stopwords.words('english'))
+    filtered_sentences = [sentence for sentence in sentences if not all(word in stop_words for word in sentence.split())]
+
+    # Create a Text object for frequency analysis
+    text = Text(filtered_sentences)
     max_summarized_sentences = 5
-    summary = ' '.join(sentences[:max_summarized_sentences])
+    summary = ' '.join(text[:max_summarized_sentences])
     
     top_image = article.top_image
     
